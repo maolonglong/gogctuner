@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	_hardTarget  = 0.7
-	_highMemGOGC = 25
-	_maxGOGC     = 500
+	_hardTarget = 0.7
+	_minGOGC    = 25
+	_maxGOGC    = 500
 )
 
 var prevgogc = -1
@@ -65,8 +65,8 @@ func finalizerHandler(f *finalizerRef) {
 
 	usedPercent := float64(used) / float64(limit)
 	newgogc := int((_hardTarget - usedPercent) / usedPercent * 100)
-	if usedPercent > _hardTarget {
-		newgogc = _highMemGOGC
+	if usedPercent > _hardTarget || newgogc < _minGOGC {
+		newgogc = _minGOGC
 	}
 	if newgogc > _maxGOGC {
 		newgogc = _maxGOGC
