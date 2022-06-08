@@ -36,34 +36,17 @@ type finalizerRef struct {
 }
 
 func finalizerHandler(f *finalizerRef) {
-	v, err := mem.VirtualMemory()
+	tuner()
+	runtime.SetFinalizer(f, finalizerHandler)
+}
+
+func tuner() {
+	usedPercent, err := getUsedPercent()
 	if err != nil {
-		log.Printf("gogctuner: Failed to get memory info: %v", err)
+		log.Printf("gogctuner: Failed to get used percent: %v", err)
 		return
 	}
-	total := int64(v.Total)
 
-	p, err := process.NewProcess(int32(os.Getpid()))
-	if err != nil {
-		log.Printf("gogctuner: Failed to get process info: %v", err)
-		return
-	}
-
-	mem, err := p.MemoryInfo()
-	if err != nil {
-		log.Printf("gogctuner: Failed to get process memory info: %v", err)
-		return
-	}
-	used := mem.RSS
-
-	limit, defined, _ := iruntime.MemoryLimit()
-	if !defined {
-		limit = total
-	} else if limit > total {
-		limit = total
-	}
-
-	usedPercent := float64(used) / float64(limit)
 	newgogc := int((_hardTarget - usedPercent) / usedPercent * 100)
 	if usedPercent > _hardTarget || newgogc < _minGOGC {
 		newgogc = _minGOGC
@@ -73,10 +56,34 @@ func finalizerHandler(f *finalizerRef) {
 	}
 
 	if newgogc != prevgogc {
-		debug.SetGCPercent(newgogc)
 		log.Printf("gogctuner: Updating GOGC=%v", newgogc)
+		debug.SetGCPercent(newgogc)
 		prevgogc = newgogc
 	}
+}
 
-	runtime.SetFinalizer(f, finalizerHandler)
+func getUsedPercent() (float64, error) {
+	v, err := mem.VirtualMemory()
+	if err != nil {
+		return -1, err
+	}
+	total := int64(v.Total)
+
+	p, err := process.NewProcess(int32(os.Getpid()))
+	if err != nil {
+		return -1, err
+	}
+
+	mem, err := p.MemoryInfo()
+	if err != nil {
+		return -1, err
+	}
+	used := mem.RSS
+
+	limit, defined, _ := iruntime.MemoryLimit()
+	if !defined || limit > total {
+		limit = total
+	}
+
+	return float64(used) / float64(limit), nil
 }
