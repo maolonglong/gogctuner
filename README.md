@@ -1,10 +1,13 @@
 # GOGCTuner [beta]
 
 ```go
-import (
-	_ "go.chensl.me/gogctuner"
-)
+import _ "go.chensl.me/gogctuner"
 ```
+
+## 🤔TODO
+
+- [ ] Support CGroups v2
+- [ ] Add unit tests
 
 ## 💡Inspired
 
