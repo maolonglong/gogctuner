@@ -1,4 +1,4 @@
-# GOGCTunera [beta]
+# GOGCTuner [beta]
 
 ```go
 import (
